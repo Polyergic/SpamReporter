@@ -47,6 +47,7 @@ Optional arguments:
 Informational arguments:
         --help                       Show this message (instead of any reporting)
         --version                    Show version (instead of any reporting)
+        --license                    Show license (GNU AGPLv3)
 ```
 
 ### License
