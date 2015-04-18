@@ -1,0 +1,14 @@
+TODOs for SpamReporter
+
+2014-04Apr-18Sat:
+	Use lock to prevent concurrent execution with same source
+		leads to duplicate reports & error (re)moving file
+
+2015-03Mar-07Sat:
+	Decode encoded Subject: headers
+		see http://ncona.com/2011/06/using-utf-8-characters-on-an-e-mail-subject/
+
+no date:
+	When spam message has no body, add one containing "[no body]"
+		see http://forum.spamcop.net/forums/topic/13093-spam-messges-with-no-body/#entry83943
+	Test for existance of destination after checking that a destination was given

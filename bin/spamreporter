@@ -1,0 +1,362 @@
+#!/usr/bin/ruby -w
+# encoding: UTF-8
+#
+# !!! enforce line endings LF only !!!
+# shell may fail to correctly recognize interpreter if CR precedes or replaces LF
+#
+#---------#---------#---------#---------#---------#---------#---------#---------#---------#---------#
+#
+
+VERSION = "SpamReporter 2.1.2"
+LICENSE = <<-AGPLv3
+SpamReporter - submits spam email to reporting accounts
+Copyright © 2003-2015 Shad Sterling <me@shadsterling.com>
+
+This program is free software: you can redistribute it and/or modify it under the terms of the
+GNU Affero General Public License as published by the Free Software Foundation,
+either version 3 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+See the GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License along with this program.
+If not, see http://www.gnu.org/licenses/agpl.html
+AGPLv3
+
+require 'fileutils'
+require 'optparse'
+require 'ostruct'
+require 'shellwords'
+#require 'pp'
+
+class Fixnum
+	def ordinalize
+		s = self.to_s
+		case s[-1]
+			when "0","4","5","6","7","8","9"
+				s += "th"
+			when "1"
+				s += "st"
+			when "2"
+				s += "rd"
+		end
+		return s
+	end
+end
+
+#----------
+
+class SpamReporterOptions
+	def self.parse(args)
+
+		#container
+		options = OpenStruct.new
+
+		#default values
+		options.sources = []
+		options.destination = nil
+		options.delete = false
+		options.verbose = false
+		options.limit = 1
+		options.spamcop = nil
+		options.quick = false
+		options.email = nil
+		options.mua = "/usr/bin/mutt"
+		options.dryrun = false
+		options.echo = false
+		options.test = false
+		options.host = nil
+		options.debug = false
+		options.body = false
+		options.knujon = nil
+		options.recipients = []
+
+		#actual options
+		opt_parser = OptionParser.new do |opts|
+			opts.banner = "Usage: spamreporter [arguments]"
+
+			opts.separator ""
+			opts.separator "Required arguments:"
+
+			opts.on( "-s", "--source <maildir>", "Report messages in this maildir as spam (may be repeated)" ) do |src|
+				options.sources << src
+			end
+			opts.on( "-d", "--destination <maildir>", "Move reported messages to this maildir (see also -r)" ) do |dst|
+				options.destination = dst
+			end
+			opts.on( "-f", "--from <email>", "The email address to use in the From: header" ) do |eml|
+				options.email = eml
+			end
+			opts.on( "-a", "--address <email>", "Report spam to this address (may be repeated; see also -i, -k, -e, and -t)" ) do |eml|
+				options.recipients << eml
+			end
+
+			opts.separator ""
+			opts.separator "Optional arguments:"
+
+			opts.on( "-i", "--id <spamcop id>", "--spamcop <spamcop id>", "Report spam to SpamCop using this user ID" ) do |id|
+				options.spamcop = id
+			end
+			opts.on( "-q", "--quick", "Report to SpamCop for quick reporting" ) do
+				options.quick = true
+			end
+			opts.on( "-k", "--knoujon [knujon id]", "Report spam to KnujOn, optionally with a user ID" ) do |id|
+				#puts "knujon: #{id.inspect}"
+				options.knujon = ( nil==id ? "spam" : id )
+			end
+			opts.on( "-e", "--echo", "Also send report to From: address" ) do
+				options.echo = true
+			end
+			opts.on( "-r", "--remove", "Delete reported messages (conflicts with and replaces -d)" ) do
+				options.delete = true
+			end
+			opts.on( "-l", "--limit <count>", Integer, "Report no more than count messages (default #{options.limit})") do |n|
+				options.limit = n
+			end
+			opts.on( "-h", "--host <host>", "--remote <host>", "Use ssh to send mail through another host (may also require -b and/or -m)" ) do |host|
+				options.host = host
+			end
+			opts.on( "-b", "--body", "Spam message reported as body of report message (rather than as attachment)" ) do
+				options.body = true
+			end
+			opts.on( "-m", "--mua <command>", "Use this command to send mail (default #{options.mua})" ) do |send|
+				options.mua = send
+			end
+			opts.on( "-v", "--verbose", "Enable verbose output" ) do
+				options.verbose = true
+			end
+			opts.on( "-t", "--test", "Send report only to From: address, and do not (re)move messages (implies -v and -e, replaces -a, -i, and -k)" ) do
+				options.test = true
+				options.verbose = true
+				options.echo = true
+			end
+			opts.on( "-n", "--dryrun", "Walk through process without sending reports or (re)moving messages" ) do
+				options.dryrun = true
+			end
+			opts.on( "-g", "--debug", "Enable debug output (implies -v)" ) do
+				options.verbose = true
+				options.debug = true
+			end
+
+			opts.separator ""
+			opts.separator "Informational arguments:"
+
+			opts.on_tail("-h", "--help", "Show this message (instead of any reporting)") do
+				puts opts
+				exit
+			end
+			opts.on_tail("--version", "Show version (instead of any reporting)") do
+				puts VERSION
+				exit
+			end
+			opts.on_tail("--license", "Show license (GNU AGPLv3)") do
+				puts LICENSE
+				exit
+			end
+		end
+
+		opt_parser.parse!(args)
+		return options
+	end  # parse()
+
+end  # class OptparseExample
+
+#ARGV << "-t"
+#ARGV << "-e" << "-v"
+#ARGV << "-e"
+#pp ARGV
+
+options = SpamReporterOptions.parse(ARGV)
+#pp options
+#pp ARGV
+
+if options.spamcop
+	options.recipients << "#{(options.quick)?"quick":"submit"}.#{options.spamcop}@spam.spamcop.net"
+	puts " - SpamCop recipient: #{options.recipients[-1]}" if options.verbose
+end
+if options.knujon
+	options.recipients << "#{options.knujon}@knujon.net"
+	puts " - KnujOn recipient: #{options.recipients[-1]}" if options.verbose
+end
+if options.echo
+	options.recipients << options.email
+	puts " - echo recipient: #{options.recipients[-1]}" if options.verbose
+end
+
+#options.quick = false; puts "FORCING QUICK=FALSE"
+
+#----------
+
+fail = []
+
+if 0 == options.sources.length then fail << "At least one source is required" end
+
+# TODO: FIXME: check that destination exists!
+if nil == options.destination then if false == options.delete then fail << "A destination is required" end
+
+else if true == options.delete then fail << "Only one of --remove and --destination is allowed" end end
+
+if nil == options.email then fail << "From: address is required" end
+
+if 0 == options.recipients.length then fail << "At least one recipient is required" end
+
+if 0 < fail.length then
+	fail.each do |msg|
+		puts "ERROR: " + msg
+	end
+	puts "For usage information: #{$0} --help"
+	exit
+end
+
+#----------
+
+dst = File.join( options.destination, "cur" )
+vrb = options.verbose || options.debug
+limit = options.limit
+spammail = options.recipients
+mailfrom = options.email
+mua = options.mua
+dry = options.dryrun
+tst = options.test || options.dryrun
+dbg = options.debug
+
+now = Time.now
+count = 0; #report count
+
+options.sources.each do |src|
+	["new","cur"].each do |p|
+		from = File.join( src, p )
+		puts " . scanning #{from}" if vrb
+		Dir.foreach( from ) do |s|
+			next if [".",".."].include? s
+			spam = File.join( from, s )
+			count += 1
+			puts " + #{count}: #{spam}" if vrb
+			size = File.stat( spam ).size
+			dest = File.join( dst, s )
+			#puts " - #{size}: #{dest}" if vrb
+			skip = false
+			mid = "(missing Message-ID)"
+			sub = "(missing Subject)"
+			File.open( spam, "rb:ASCII-8BIT" ) do |f|
+				f.each_line do |line|  # NOTE: line includes terminator
+					case line
+						when /^Message-ID:\s/ # Message-ID: header
+							mid = line.chomp
+							puts "Message-ID Header  -- "+line.inspect if dbg
+						when /^Subject:\s/ # Subject: header
+							sub = line.chomp
+							puts "Subject Header     -- "+line.inspect if dbg
+						when "\n", "\r\n", "\r", "\n\r" # line consists only of terminator
+							puts "End of headers" if dbg
+							break
+						else
+							puts "Unused Header Line -- "+line.inspect if dbg
+					end
+				end
+			end
+			## TODO: FIXME: decode encoded Subject:
+			subject = "SpamReporter: Run at #{now}#{(dry||tst)?" (not)":""} reporting #{count.ordinalize} message, #{size} bytes -- #{mid}; #{sub}"
+			hdr = "my_hdr X-Spam-Reporter: #{VERSION}; #{now.to_s}; #{$$}; #{count} #{size}"
+			puts ( (vrb) ? " : " : "" )+subject
+
+			#options.host = nil
+			#options.body = true
+
+			commands = []
+			if nil == options.host then
+				if options.body then  # local inline
+					send = []
+					send << "cat #{spam.shellescape} | EMAIL=#{mailfrom.shellescape} #{mua} -e #{hdr.gsub(";","\\;").shellescape} -s #{subject.shellescape}"
+					spammail.each do |addr|
+						send << "-b "+addr.shellescape
+					end
+					send << "undisclosed-recipients:;".shellescape
+					commands << send.join(" ")
+				else # local attached
+					commands << "export SPAM_FILE=`mktemp -t spam.XXXXXXXXXXX.eml`"
+					commands << "cp #{spam.shellescape} \"$SPAM_FILE\""
+					send = []
+					send << "echo See Attached | EMAIL=#{mailfrom.shellescape} #{mua} -e #{hdr.gsub(";","\\;").shellescape} -s #{subject.shellescape}"
+					spammail.each do |addr|
+						send << "-b "+addr.shellescape
+					end
+					send << "-a $SPAM_FILE --"
+					send << "undisclosed-recipients:;".shellescape
+					commands << send.join(" ")
+					commands << "rm $SPAM_FILE"
+				end
+			else
+				if options.body then # remote inline
+					remote = []
+					remote << "EMAIL="+mailfrom.shellescape
+					remote << "#{mua} -e #{hdr.gsub(";","\\;").shellescape} -s #{subject.shellescape}"
+					spammail.each do |addr|
+						remote << "-b "+addr.shellescape
+					end
+					remote << "undisclosed-recipients:;".shellescape
+					send = "cat #{spam.shellescape} | ssh #{options.host} #{remote.join(" ").shellescape}"
+					commands << send
+				else # remote attached
+					remotes = []
+					remotes << "SPAM_SSH=`echo $SSH_CLIENT | head -n 1 | awk '{ print $1 }'`"
+					remotes << "export SPAM_FILE=`mktemp -t spam.XXXXXXXXXXX.eml`"
+					remotes << "scp $SPAM_SSH:#{spam.shellescape} \"$SPAM_FILE\""
+					send = []
+					send << "echo See Attached | EMAIL=#{mailfrom.shellescape} #{mua} -e #{hdr.gsub(";","\\;").shellescape} -s #{subject.shellescape}"
+					spammail.each do |addr|
+						send << "-b "+addr.shellescape
+					end
+					send << "-a $SPAM_FILE --"
+					send << "undisclosed-recipients:;".shellescape
+					remotes << send.join(" ")
+					remotes << "rm $SPAM_FILE"
+					remote = remotes.map { |cmd| cmd + " 2>&1" }.join("; ")
+					commands << "ssh #{options.host} #{remote.shellescape}"
+				end
+			end
+
+			script = commands.map { |cmd| cmd + " 2>&1" }.join("; ")
+
+			puts " > "+script if vrb
+			#Fun bug: some unknown infrequent condition results in the inode being linked in both places
+			if File.file?(dest)
+				sd = File.stat( dest )
+				ss = File.stat( spam )
+				if sd.ino == ss.ino # "ino" is short for "inode", because "inode" is too long for a method name.
+					puts " . Destination file exists but links same inode; removing previously reported copy" if vrb
+					FileUtils.rm( dest ) unless dry || tst #remove redundant file
+				else
+					puts " ! SKIPPED - Destination file exists but links different inode:\n" +
+					     "\tsrc: #{spam}\n" +
+					     "\t\t#{File.stat(spam).inspect}\n" +
+					     "\tdst: #{dest}\n" +
+					     "\t\t#{File.stat(dest).inspect}"
+					skip = true
+					count -= 1
+				end
+			end
+			unless skip
+				## send report
+				puts " >#{(dry)?" (not)":""} sending report" if vrb
+				info = `#{script}` unless dry
+				## move or print error
+				unless [nil,""].include?( info )
+					print " ! FAILED - mail script: #{script}\n" +
+					      "            output:\n#{info}\n"
+					count -= 1
+				else #success
+					puts " * SUCCESS! -#{(dry||tst)?" (not)":""} moving to sent" if vrb
+					FileUtils.move( spam, dest ) unless dry || tst
+				end
+			end
+			" . done with ##{count}" if vrb
+			break if count >= limit
+		end
+	end
+end
+puts unless 0 == count
+
+exit
+

@@ -1,0 +1,83 @@
+CHANGELOG for SpamReporter
+
+2.1.2 - 2015-Apr.-17
+	Cleaned up for github release
+
+2.1.1 - 2015-Apr.-15
+	Added knujon recipient option
+	Added generic recipient option
+
+2.1.0 - 2015-Apr.-14
+	Added body/attachment switch, attachment by default
+	Moved recipients to Bcc, using To: undisclosed-recipients:;
+	Switched to using mutt (rather than sendmail)
+
+2.0.3 - 2015-Feb.-15
+	Fixed crash on incompatible encoding of headers
+
+2.0.1 - 2015-Feb.-14
+	Added reading Message-ID header
+
+2.0.0 - 2015-Feb.-13
+	Major update to accept command line options
+		replaces hardcoded settings
+
+1.2.3 - 2011-Nov.-10
+	added argument for debug output
+
+1.2.2 - 2011-Nov.-08
+	source and destination moved from hardcoded to arguments
+
+1.2.1 - 2011-Jan.-23
+	fixed crash when moving a file which was half-moved already
+
+1.2.0 - 2009-July-14
+	complete rewrite in ruby
+		it's really simplified now
+
+1.1.1 - 2009-July-11
+	fixed crash after fresh spam merge
+		reload previously opened dir was failing, switched to only read once after merging
+		now the banner is printed in the frst section that occurs, rather than before any
+	shortened & clairified output messages
+	made coding style more consistent
+
+1.1.0 - 2009-April-16
+	reorganized to reintegrate merging from maildir "new" directory
+	cleaned up old comments
+	stopped using carp
+	switch from mail::send to `sendmail`
+		stop ignoring SIGPIPE
+	reversed changelog order
+	cleaned up warnings from perl -W
+
+1.0.9 - 2009-February-13
+	no output when no reports
+
+1.0.8 - 2009-February-02
+	adapted to run on arcturus
+
+1.0.7 - 2008-April-14:
+	cleaned up warnings from perl -W
+	ignore SIGPIPE to enable handling of mail failures
+	crude handling of mail failures
+	found & fixed wrong move destination bug
+
+1.0.6 - 2008-April-09:
+	replaced backtick shell calls with native perl calls (File::Copy)
+		no more printing output from `cat`
+		no more moving completed file with `mv`
+	added gobs of error messages (Carp)
+	switched to split input/output rather than single copy function (IO::File)
+	added spam-reported header (POSIX for strftime)
+
+1.0.5 - 2007-June-09:
+	revised output:
+		output size is constant when there is nothing to report (not echoing PID)
+		output formatting resembles that of my unison scripts
+	quit iterating array to find it's length (d'oh!)
+
+1.0.4 - 2003-Dec.-09:
+	first version I bothered to make notes about
+
+
