@@ -52,7 +52,7 @@ Informational arguments:
 
 ### License
 
-SpamReporter - submits spam email to reporting accounts
+SpamReporter - submits spam email to reporting accounts<br/>
 Copyright © 2003-2015 Shad Sterling <<me@shadsterling.com>>
 
 This program is free software: you can redistribute it and/or modify it under the terms of the
