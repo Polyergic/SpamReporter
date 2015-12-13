@@ -7,7 +7,7 @@
 #---------#---------#---------#---------#---------#---------#---------#---------#---------#---------#
 #
 
-VERSION = "SpamReporter 2.1.2"
+VERSION = "SpamReporter 2.1.3"
 LICENSE = <<-AGPLv3
 SpamReporter - submits spam email to reporting accounts
 Copyright © 2003-2015 Shad Sterling <me@shadsterling.com>
