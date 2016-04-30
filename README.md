@@ -54,7 +54,7 @@ Informational arguments:
 ### License
 
 SpamReporter - submits spam email to reporting accounts<br/>
-Copyright © 2003-2015 Shad Sterling <<me@shadsterling.com>>
+Copyright © 2003-2016 Shad Sterling <<me@shadsterling.com>>
 
 This program is free software: you can redistribute it and/or modify it under the terms of the
 GNU Affero General Public License as published by the Free Software Foundation,
