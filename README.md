@@ -37,6 +37,7 @@ Optional arguments:
     -e, --echo                       Also send report to From: address
     -r, --remove                     Delete reported messages (conflicts with and replaces -d)
     -l, --limit <count>              Report no more than count messages (default 1)
+    -p, --stop <count>               Stop after count failures (default 1)
     -h, --host, --remote <host>      Use ssh to send mail through another host (may also require -b and/or -m)
     -b, --body                       Spam message reported as body of report message (rather than as attachment)
     -m, --mua <command>              Use this command to send mail (default /usr/bin/mutt)
