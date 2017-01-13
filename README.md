@@ -1,6 +1,6 @@
 # SpamReporter
 
-Submits spam email to reporting accounts — sends messages stored in a Maildir to SpamCop, KnujOn, or any specified reporting address (such as the 
+Submits spam email to reporting accounts — sends messages stored in a Maildir to [SpamCop](https://www.spamcop.net/), [KnujOn](http://www.knujon.com/), or any specified reporting address (such as the 
 [FTC's](http://www.consumer.ftc.gov/articles/0038-spam#report) [spam@uce.gov](mailto:spam@uce.gov)).
 
 ### Dependencies
